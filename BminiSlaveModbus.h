@@ -9,7 +9,7 @@
 #include "Arduino.h"
 
 // function definitions
-void bmini_init(unsigned int slaveid, unsigned int baudrate);
+void bmini_init(unsigned int slaveid, unsigned int baudrate, unsigned int TOTAL_REGS_SIZE);
 unsigned int modbus_update_regs(unsigned int *holdingRegs);
 
 
@@ -18,5 +18,6 @@ void pwm(int pwm_number, int value);
 int get_inputs(int di_number);
 float readTemperatureC(int an_number);
 float readTemperatureF(int an_number);
+int analogReadPin(int pin_number);
 
 #endif

@@ -1,36 +1,45 @@
 #include "BminiSlaveModbus.h"
 #include "SimpleModbusSlave.h"
 
-//board pins association
+/*Bmini shield pins mapping
+with Arduino Mini board
+Biemme Italia 2013
+*/
 
+//digital input pins
 #define DIGIN1 2
 #define DIGIN2 3
 #define DIGIN3 4
 #define DIGIN4 5
 
+//digital output pins (relay)
 #define RELAY1 7
 #define RELAY2 6
 #define RELAY3 9
 #define RELAY4 8
 
+//pwm pins
 #define PWM1 10
 #define PWM2 11
 
+//modbus status led and MAX485/1487 enable pin
 #define MODBUSLED 12
 #define MODBUSPIN 13
 
 //analog pins
 
-#define ANALOG0 0
-#define ANALOG1 1
-#define ANALOG2 2
-#define ANALOG3 3
-#define ANALOG4 4
-#define ANALOG5 5
-#define ANALOG6 6
-#define ANALOG7 7
+#define ANALOG1 0
+#define ANALOG2 1
+#define ANALOG3 2
+#define ANALOG4 3
+#define ANALOG5 4
+#define ANALOG6 5
+#define ANALOG7 6
+#define ANALOG8 7
 
 // function definitions
+int analogReadPin(int pin_number);
+
 
 //modbus registers update
 unsigned int modbus_update_regs(unsigned int *holdingRegs){
@@ -39,7 +48,7 @@ unsigned int modbus_update_regs(unsigned int *holdingRegs){
 }
 
 // Bmini pins initialization
-void bmini_init(unsigned int slaveid, unsigned int baudrate)
+void bmini_init(unsigned int slaveid, unsigned int baudrate, unsigned int TOTAL_REGS_SIZE)
 {	
 	//digital inputs init
 	pinMode(DIGIN1, INPUT_PULLUP);
@@ -62,7 +71,7 @@ void bmini_init(unsigned int slaveid, unsigned int baudrate)
 	pinMode(MODBUSPIN, OUTPUT);
 	
 	//modbus_configure(baudrate, slaveid, MODBUSPIN, TOTAL_REGS_SIZE);
-	modbus_configure(baudrate, slaveid, MODBUSPIN, 12);
+	modbus_configure(baudrate, slaveid, MODBUSPIN, TOTAL_REGS_SIZE);
 
 }
 
@@ -107,6 +116,9 @@ void pwm(int pwm_number, int value){				//max value allowed [0,255]
 	}
 }
 
+/* Get digital inputs status
+ Biemme Italia 2013
+*/
 int get_inputs(int di_number){
 	int dig_pin, ret;
 
@@ -131,72 +143,86 @@ int get_inputs(int di_number){
 }
 
 float readTemperatureC(int an_number){
-	int analog_pin, reading;
-	switch(an_number){
-		case 1:
-			analog_pin = ANALOG1;
-			break;
-		case 2:
-			analog_pin = ANALOG2;
-			break;
-		case 3:
-			analog_pin = ANALOG3;
-			break;
-		case 4:
-			analog_pin = ANALOG4;
-			break;
-		default:
-			return -1;
-	}
-	
-	reading = analogRead(analog_pin);
 
-	float voltage = reading * 5.0;
-	voltage /= 1024.0; 
- 
-	 //converting from 10 mv per degree wit 500 mV offset
-        //to degrees ((volatge - 500mV) times 100)
- 	float temperatureC = (voltage - 0.5) * 100 ; 
- 
-	return temperatureC;
- 
+	int reading = analogReadPin(an_number);
+	
+	if (reading > -999){
+
+		float voltage = reading * 5.0;
+		voltage /= 1024.0; 
+	 
+		 //converting from 10 mv per degree wit 500 mV offset
+		//to degrees ((volatge - 500mV) times 100)
+	 	float temperatureC = (voltage - 0.5) * 100 ; 
+	 
+		return temperatureC;
+ 	}else{
+		return -999;
+	}
 
 
 }
 
+/* Read temperature from TMP36 like sensor
+ Biemme Italia 2013
+*/
 float readTemperatureF(int an_number){
 
-	int analog_pin, reading;
-	switch(an_number){
-		case 1:
-			analog_pin = ANALOG1;
-			break;
-		case 2:
-			analog_pin = ANALOG2;
-			break;
-		case 3:
-			analog_pin = ANALOG3;
-			break;
-		case 4:
-			analog_pin = ANALOG4;
-			break;
-		default:
-			return -1;
+	int reading = analogReadPin(an_number);
+
+	if (reading > -999){
+		float voltage = reading * 5.0;
+		voltage /= 1024.0; 
+	 
+		 //converting from 10 mv per degree wit 500 mV offset
+		//to degrees ((volatge - 500mV) times 100)
+	 	float temperatureC = (voltage - 0.5) * 100 ; 
+
+	 	// now convert to Fahrenheight
+		float temperatureF = (temperatureC * 9.0 / 5.0) + 32.0;
+		return temperatureF;
+	}else{
+		return -999;
 	}
-	
-	reading = analogRead(analog_pin);
+}
 
-	float voltage = reading * 5.0;
-	voltage /= 1024.0; 
- 
-	 //converting from 10 mv per degree wit 500 mV offset
-        //to degrees ((volatge - 500mV) times 100)
- 	float temperatureC = (voltage - 0.5) * 100 ; 
+/* Read analog pins
+* Biemme Italia
+*/
+int analogReadPin(int pin_number){
+        int pin_toread;
+        switch(pin_number){
+                case 1:
+                        pin_toread = ANALOG1;
+                        break;
+                case 2:
+                        pin_toread = ANALOG2;
+                        break;
+                case 3:
+                        pin_toread = ANALOG3;
+                        break;
+                case 4:
+                        pin_toread = ANALOG4;
+                        break;
+		case 5:
+                        pin_toread = ANALOG5;
+			break;
+		case 6:
+			pin_toread = ANALOG6;
+			break;
+		case 7:
+			pin_toread = ANALOG7;
+			break;
+		case 8:
+			pin_toread = ANALOG8;
+			break;
+                default:
+                        // no more than 4 analog input are allowed
+                        return -999;
+        }
+        int value = analogRead(pin_toread);
 
+        return value;
 
-
- 	// now convert to Fahrenheight
-	float temperatureF = (temperatureC * 9.0 / 5.0) + 32.0;
-	return temperatureF;
 }
 
